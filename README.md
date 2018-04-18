@@ -1,2 +1,2 @@
 # lcc-mips
-C compiler
+C compiler (mips version)
