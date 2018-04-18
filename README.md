@@ -1,4 +1,2 @@
 # lcc-mips
-C compiler (mips version)
--------------------------
-programming in VS2015
+C compiler which MIPS version which program in VS2015.
