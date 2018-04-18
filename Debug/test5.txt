@@ -1,0 +1,31 @@
+int a;
+int b;
+int program(int a,int b,int c)
+{
+	int i;
+	int j;
+	i=0; 	
+	if(a>(b+c))
+	{
+		j=a+(b*c+1);
+	}
+	else
+	{
+		j=a;
+	}
+	while(i<=100)
+	{
+		j=j*2;
+		i=j;
+	}
+	return i;
+}
+
+int demo(int a)
+{
+	a=a+2;
+	b=1;
+	return a*2;
+}
+
+#

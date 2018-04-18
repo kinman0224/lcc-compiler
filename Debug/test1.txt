@@ -1,0 +1,61 @@
+int a;
+int b;
+int program(int a, int b, int c)
+{
+    int i;
+    int j;
+    i = 0;
+    if (a > (b + c))
+    {
+	 int k;
+         j = a + (b * c + 1);
+    }
+    else
+    {
+         int k;
+         j = a;
+    }
+
+    while (i <= 100)
+    {
+        int k;
+         int m; 
+         i  = i * 2;
+    }
+    return i;
+}
+int program(int a, int b, int c, int d)
+{
+    a = a / a + b * (c - a) + d;
+    return a;
+}
+int demo(void)
+{
+     return 5;
+}
+int demo(int a, int b) 
+{
+return 0;
+}
+int demo(int a)
+{
+    a = a + 2;
+    return a * 2;
+}
+int program(int x) 
+{
+    x = 5;
+    return 0;
+}
+void main(void)
+{
+    int a;
+    int b;
+   int c;
+    a = 3;
+    b = 4;
+    c = 2;
+    a = program(demo(a), b, demo(a, b), program(c + 3 * 2));
+    return;
+} 
+#
