@@ -665,7 +665,6 @@ void AS::analyze(string input)
 		_program(&synTree);
 	}
 
-	if (Error::ErrorCount > 0) {
+	if (Error::ErrorCount > 0)
 		exit(-1);
-	}
 }

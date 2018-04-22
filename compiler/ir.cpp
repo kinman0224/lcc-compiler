@@ -716,8 +716,6 @@ Symbol IR::_factor(TreeNode *parent)
 				ParameterList list;
 
 				list = _ftype(&(*node_it));
-				FSYM->arguments = (list->npara > FSYM->arguments) ? list->npara : FSYM->arguments;
-
 				recv = CreateTemp();
 				GenerateFunctionCall(recv, sym, list);
 				sym = recv;

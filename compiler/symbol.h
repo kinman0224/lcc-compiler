@@ -25,12 +25,12 @@ enum
 	struct symbol *link;  \
     struct symbol *next;
 
+typedef struct bblock *BBlock;
+
 typedef struct symbol
 {
 	SYMBOL_COMMON
 } *Symbol;
-
-typedef struct bblock *BBlock;
 
 typedef struct variableSymbol
 {
@@ -45,7 +45,6 @@ typedef struct functionSymbol
 	vector<Symbol> params;
 	vector<Symbol> locals;
 	int nbblock;
-	int arguments;
 	BBlock entryBB;
 	BBlock exitBB;
 } *FunctionSymbol;

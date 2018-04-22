@@ -66,7 +66,6 @@ Symbol SymTable::AddFunction(string name, int line)
 	p->kind = SK_Function;
 	p->name = name;
 	p->ref = 0;
-	p->arguments = 0;
 	p->reg = NULL;
 	p->link = NULL;
 	p->line = line;
@@ -136,7 +135,6 @@ Symbol SymTable::IntConstant(int i)
 void SymTable::InitSymbolTable(void)
 {
 	Level = 0;
-	GlobalIDs.level = Level;
 
 	Identifiers = &GlobalIDs;
 	Identifiers->outer = NULL;

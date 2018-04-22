@@ -2,11 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Error::Error()
-{
-	ErrorCount = 0;
-}
-
 void Error::Do_Error(char *err, int line)
 {
 	ErrorCount++;

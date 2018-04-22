@@ -90,6 +90,7 @@ void Compiler::PutASMCode(const char *str, Symbol opds[])
 			break;
 
 		case '%':
+			// 	Linux:
 			// TEMPLATE(X86_MOVI4,    "movl %1, %0")
 			fmt++;
 			if (*fmt == '%')
@@ -128,29 +129,19 @@ void Compiler::PutASMCode(const char *str, Symbol opds[])
 */
 void Compiler::SetupRegisters()
 {
-	int i;
-	for (i = 0; i <= $ra; i++) {
-		Regs[i] = NULL;
-	}
-	
-	Regs[$zero] = CreateReg("$zero", $zero);
+	/*
+	ESP, EBP are used for stack,
+	so we don't have to CreateReg
+	*/
+	Regs[EAX] = CreateReg("%eax", EAX);
+	Regs[EBX] = CreateReg("%ebx", EBX);
+	Regs[ECX] = CreateReg("%ecx", ECX);
+	Regs[EDX] = CreateReg("%edx", EDX);
+	Regs[ESI] = CreateReg("%esi", ESI);
+	Regs[EDI] = CreateReg("%edi", EDI);
 
-	Regs[$v0] = CreateReg("$v0", $v0);
-	Regs[$v1] = CreateReg("$v1", $v1);
-
-	Regs[$a0] = CreateReg("$a0", $a0);
-	Regs[$a1] = CreateReg("$a1", $a1);
-	Regs[$a2] = CreateReg("$a2", $a2);
-	Regs[$a3] = CreateReg("$a3", $a3);
-
-	Regs[$t0] = CreateReg("$t0", $t0);
-	Regs[$t1] = CreateReg("$t1", $t1);
-	Regs[$t2] = CreateReg("$t2", $t2);
-	Regs[$t3] = CreateReg("$t3", $t3);
-	Regs[$t4] = CreateReg("$t4", $t4);
-	Regs[$t5] = CreateReg("$t5", $t5);
-	Regs[$t6] = CreateReg("$t6", $t6);
-	Regs[$t7] = CreateReg("$t7", $t7);
+	Regs[ESP] = NULL;
+	Regs[EBP] = NULL;
 }
 
 void Compiler::AllocateReg(IRInst inst, int index)
@@ -203,8 +194,7 @@ Symbol Compiler::PutInReg(Symbol p)
 		return p->reg;
 	}
 	reg = GetRegInternal();
-
-	Load(reg, p);
+	Move(reg, p);
 	return reg;
 }
 
@@ -223,23 +213,23 @@ string Compiler::GetAccessName(Symbol p)
 	switch (p->kind)
 	{
 	case SK_Constant:
-		p->aname = p->name;
+		p->aname = "$" + p->name;
 		break;
 	case SK_Variable:
 	case SK_Temp:
 		if (p->level == 0)
-			p->aname = "_" + p->name;
+			p->aname = p->name;
 		else {
 			char tmp[100];
-			sprintf(tmp, "%d($sp)", ((VariableSymbol)p)->offset);
+			sprintf(tmp, "%d(%%ebp)", ((VariableSymbol)p)->offset);
 			p->aname = tmp;
 		}
 		break;
 	case SK_Label:
-		p->aname = "_" + p->name;
+		p->aname = p->name;
 		break;
 	case SK_Function:
-		p->aname = "_" + p->name;
+		p->aname = p->name;
 		break;
 	}
 
@@ -267,12 +257,11 @@ void Compiler::LayoutFrame(FunctionSymbol fsym, int fstParamPos)
 		((VariableSymbol)(*it))->offset = offset;
 		offset += PRESERVE_REGS;
 	}
-
-	offset = fsym->arguments * PRESERVE_REGS;
+	offset = 0;
 	it = fsym->locals.begin();
 	for (; it != fsym->locals.end(); it++) {
-		((VariableSymbol)(*it))->offset = offset;
 		offset += PRESERVE_REGS;
+		((VariableSymbol)(*it))->offset = -offset;
 	}
 }
 
@@ -282,46 +271,12 @@ void Compiler::Move(Symbol dst, Symbol src)
 
 	opds[0] = dst;
 	opds[1] = src;
-	PutASMCode(MIPS_MOVE, opds);
+	PutASMCode(X86_MOVI4, opds);
 }
 
-void Compiler::Save(Symbol dst, Symbol src)
+void Compiler::PushArgument(Symbol arg)
 {
-	Symbol opds[2];
-
-	if (dst->reg != NULL){
-		SpillReg(dst->reg);
-	}
-
-	opds[0] = dst;
-	opds[1] = src;
-	PutASMCode(MIPS_SW, opds);
-}
-
-void Compiler::Load(Symbol dst, Symbol src)
-{
-	Symbol opds[2];
-
-	opds[0] = dst;
-	opds[1] = src;
-	PutASMCode(MIPS_LW, opds);
-}
-
-void Compiler::PushArgument(Symbol arg, int n)
-{
-	if (n > 4) {
-		Symbol opds[2];
-		opds[0] = Regs[$a0 + n];
-		opds[1] = arg;
-		if (arg->kind == SK_Variable)
-			PutASMCode(MIPS_LW, opds);
-		else
-			PutASMCode(MIPS_MOVE, opds);
-	}
-	else {
-		// 入棧
-
-	}
+	PutASMCode(X86_PUSH, &arg);
 }
 
 
@@ -333,43 +288,19 @@ void Compiler::PushArgument(Symbol arg, int n)
 
 void Compiler::EmitPrologue(int varsize)
 {
-	Symbol sym0 = IntConstant(-varsize*sizeof(int));
-	Symbol sym1 = IntConstant(varsize*sizeof(int) - 4);
-	Symbol sym2 = IntConstant(varsize*sizeof(int) - 8);
-	Symbol sym[3];
+	PutASMCode(PROLOGUE, NULL);
 
-	sym[0] = sym0;
-	sym[1] = sym1;
-	sym[2] = sym2;
-
-	PutASMCode(PROLOGUE, sym);
+	if (varsize != 0) {
+		Symbol sym = IntConstant(varsize*sizeof(int));
+		PutASMCode(EXPANDF, &sym);
+	}
 }
 
 void Compiler::EmitEpilogue(int varsize)
 {
-	Symbol sym0 = IntConstant(varsize*sizeof(int));
-	Symbol sym1 = IntConstant(varsize*sizeof(int) - 4);
-	Symbol sym2 = IntConstant(varsize*sizeof(int) - 8);
-	Symbol sym[3];
-
-	sym[0] = sym0;
-	sym[1] = sym1;
-	sym[2] = sym2;
-
-	PutASMCode(EPILOGUE, sym);
-
-
-	PutChar('\n');
+	PutASMCode(EPILOGUE, NULL);
 }
 
-void Compiler::EmitArguments(FunctionSymbol p)
-{
-	int size = (p->params.size() > 4) ? 4 : p->params.size();
-	for (int i = 0; i <size ; i++)
-	{
-		Save(p->params[i], Regs[$a0 + i]);
-	}
-}
 /*
 	產生滙編指令
 	@ EmitMove
@@ -383,22 +314,7 @@ void Compiler::EmitMove(IRInst inst)
 {
 	if (SRC1->kind == SK_Constant)
 	{
-		SpillReg(Regs[$v0]);
-
-		// load im
-		Symbol opds[2];
-		opds[0] = Regs[$v0];
-		opds[1] = SRC1;
-		PutASMCode(MIPS_LI, opds);
-
-		if (SRC1->kind != SK_Temp)
-		{
-			Save(DST, Regs[$v0]);
-		}
-		else {
-			DST->reg = Regs[$v0];
-			Regs[$v0]->link = DST;
-		}
+		Move(DST, SRC1);
 	}
 	else
 	{
@@ -406,13 +322,14 @@ void Compiler::EmitMove(IRInst inst)
 		AllocateReg(inst, 0);
 		if (SRC1->reg == NULL && DST->reg == NULL)
 		{
-			Load(Regs[$v0], SRC1);
-			Save(DST, Regs[$v0]);
+			Symbol reg;
+			reg = GetRegInternal();
+			Move(reg, SRC1);
+			Move(DST, reg);
 		}
 		else
 		{
-			Save(DST, SRC1);
-			SpillReg(SRC1->reg);
+			Move(DST, SRC1);
 		}
 	}
 
@@ -430,147 +347,66 @@ void Compiler::EmitAssign(IRInst inst)
 		AllocateReg(inst, 1);
 		AllocateReg(inst, 2);
 		AllocateReg(inst, 0);
+		//char name[40];
+		//sprintf(name, "%s", SRC1->reg->name.c_str());
+		//PutString(name);
+		
 	
-		if (SRC1->kind == SK_Constant & SRC2->kind == SK_Constant) {
-
-			// load im
-			Symbol opds[2];
-			opds[0] = DST;
-			opds[1] = SRC1;
-			PutASMCode(MIPS_LI, opds);
-
-			opds[0] = DST;
-			if (OP == $ADD) opds[1] = SRC1;
-			if (OP == $SUB) opds[1] = AddConstant(-SRC1->val);
-
-			PutASMCode(MIPS_ADDIU, opds);
-
+		if (DST->reg != SRC1->reg)
+		{
+			Move(DST, SRC1);
 		}
-		else if (SRC1->kind == SK_Constant) {
-			if (DST->reg != SRC2->reg)
-			{
-				Load(DST, SRC2);
-			}
-
-			Symbol opds[2];
-			opds[0] = DST;
-			if (OP == $ADD) opds[1] = SRC1;
-			if (OP == $SUB) opds[1] = AddConstant(-SRC1->val);
-
-			PutASMCode(MIPS_ADDIU, opds);
-		}
-		else if (SRC2->kind == SK_Constant) {
-			if (DST->reg != SRC1->reg)
-			{
-				Load(DST, SRC1);
-			}
-
-			Symbol opds[2];
-			opds[0] = DST;
-			if (OP == $ADD) opds[1] = SRC2;
-			if (OP == $SUB) opds[1] = AddConstant(-SRC2->val);
-
-			PutASMCode(MIPS_ADDIU, opds);
-		}
-		else {
-			if (DST->reg != SRC1->reg)
-			{
-				Load(DST, SRC1);
-			}
-			
-			Symbol reg = PutInReg(SRC2);
-
-			Symbol opds[2];
-			opds[0] = DST;
-			opds[1] = reg;
-
-			if (OP == $ADD) PutASMCode(MIPS_ADDU, opds);
-			if (OP == $SUB) PutASMCode(MIPS_SUBU, opds);
-		}
+		if (OP == $ADD) PutASMCode(X86_ADDI4, inst->opds);
+		if (OP == $SUB) PutASMCode(X86_SUBI4, inst->opds);
 		break;
 
 	case $MUL:
 	case $DIV:
-
-		AllocateReg(inst, 1);
-		AllocateReg(inst, 2);
-		AllocateReg(inst, 0);
-		if (SRC1->kind == SK_Constant & SRC2->kind == SK_Constant)
+		if (SRC1->reg == Regs[EAX])
 		{
-			// load im
-			Symbol opds[2];
-			opds[0] = DST;
-			opds[1] = SRC1;
-			PutASMCode(MIPS_LI, opds);
-
-			// load im
-			Symbol reg = GetRegInternal();
-			opds[0] = reg;
-			opds[1] = SRC2;
-			PutASMCode(MIPS_LI, opds);
-
-			opds[0] = DST;
-			opds[1] = reg;
-			if (OP == $MUL) PutASMCode(MIPS_MUL, opds);
-			if (OP == $DIV) PutASMCode(MIPS_DIV, opds);
+			SpillReg(Regs[EAX]);
 		}
-		else if (SRC1->kind == SK_Constant)
+		else
 		{
-			if (DST->reg != SRC2->reg)
-			{
-				Load(DST, SRC2);
+			Symbol sym = Regs[EAX]->link;
+
+			if (sym != NULL && sym->ref > 0) {
+				Symbol reg = GetRegInternal();
+				SpillReg(Regs[EAX]);
+
+				Move(reg, Regs[EAX]);
+				sym->reg = reg;
+				reg->link = sym;
 			}
-
-			// load im
-			Symbol reg = GetRegInternal();
-			Symbol opds[2];
-			opds[0] = reg;
-			opds[1] = SRC1;
-			PutASMCode(MIPS_LI, opds);
-
-			opds[0] = DST;
-			opds[1] = reg;
-			if (OP == $MUL) PutASMCode(MIPS_MUL, opds);
-			if (OP == $DIV) PutASMCode(MIPS_DIV, opds);
-
+			else {
+				SpillReg(Regs[EAX]);
+			}
+			
+			Move(Regs[EAX], SRC1);
 		}
-		else if (SRC2->kind == SK_Constant) 
+		// SpillReg(Regs[EDX]);
+		// 將SRC1擴展後放在EAX與EDX
+		UsedRegs = 1 << EAX ;
+		if (SRC2->kind == SK_Constant)
 		{
-			if (DST->reg != SRC1->reg)
-			{
-				Load(DST, SRC1);
-			}
-
-			// load im
 			Symbol reg = GetRegInternal();
-			Symbol opds[2];
-			opds[0] = reg;
-			opds[1] = SRC2;
-			PutASMCode(MIPS_LI, opds);
 
-			opds[0] = DST;
-			opds[1] = reg;
-			if (OP == $MUL) PutASMCode(MIPS_MUL, opds);
-			if (OP == $DIV) PutASMCode(MIPS_DIV, opds);
+			Move(reg, SRC2);
+			SRC2 = reg;
 		}
-		else {
-			if (DST->reg != SRC1->reg)
-			{
-				Load(DST, SRC1);
-			}
-
-			Symbol reg = PutInReg(SRC2);
-
-			Symbol opds[2];
-			opds[0] = DST;
-			opds[1] = reg;
-
-			if (OP == $MUL) PutASMCode(MIPS_MUL, opds);
-			if (OP == $DIV) PutASMCode(MIPS_DIV, opds);
-
+		else
+		{
+			AllocateReg(inst, 2);
 		}
-		
+
+		if (OP == $MUL) PutASMCode(X86_MULI4, inst->opds);
+		if (OP == $DIV) PutASMCode(X86_DIVI4, inst->opds);
+
+		DST->link = Regs[EAX]->link;
+		Regs[EAX]->link = DST;
+		DST->reg = Regs[EAX];
 		break;
+
 	default:
 		break;
 	}
@@ -585,255 +421,40 @@ void Compiler::EmitBranch(IRInst inst)
 	BBlock p = (BBlock)DST;
 	DST = p->sym;
 
+	if (SRC2) {
+		if (SRC2->kind != SK_Constant) {
+			SRC1 = PutInReg(SRC1);
+		}
+	}
+	
+	if (SRC1->reg != NULL) {
+		SRC1 = SRC1->reg;
+	}
+
 	SRC1->ref--;
-	SRC2->ref--;
-	if (SRC1->kind == SK_Constant & SRC2->kind == SK_Constant) {
-		Symbol reg1, reg2;
-		Symbol opds[2];
 
-		// load im
-		reg1 = GetRegInternal();
-		opds[0] = reg1;
-		opds[1] = SRC1;
-
-		PutASMCode(MIPS_LI, opds);
-		SRC1->reg = reg1;
-		reg1->link = SRC1;
-
-		// load im
-		reg2 = GetRegInternal();
-		opds[0] = reg2;
-		opds[1] = SRC2;
-
-		PutASMCode(MIPS_LI, opds);
-		SRC2->reg = reg2;
-		reg2->link = SRC2;
-
-		if (OP == $JE) {
-			PutASMCode(MIPS_BEQ, inst->opds);
+	if (SRC2) {
+		SRC2->ref--;
+		if (SRC2->reg != NULL) {
+			SRC2 = SRC2->reg;
 		}
-		else if (OP == $JNE) {
-			PutASMCode(MIPS_BNE, inst->opds);
-		}
-		else if (OP == $JG) {
-			Symbol opds[3];
-			opds[0] = SRC2;
-			opds[1] = SRC1;
-			PutASMCode(MIPS_SLT, opds);
-
-			opds[0] = DST;
-			opds[1] = SRC2;
-			opds[2] = Regs[$zero];
-			PutASMCode(MIPS_BNE, opds);
-		}
-		else if (OP == $JL) {
-			Symbol opds[3];
-			opds[0] = SRC1;
-			opds[1] = SRC2;
-			PutASMCode(MIPS_SLT, opds);
-
-			opds[0] = DST;
-			opds[1] = SRC1;
-			opds[2] = Regs[$zero];
-			PutASMCode(MIPS_BNE, opds);
-		}
-		else if (OP == $JGE) {
-			Symbol opds[3];
-			opds[0] = SRC1;
-			opds[1] = SRC2;
-			PutASMCode(MIPS_SLT, opds);
-
-			opds[0] = DST;
-			opds[1] = SRC1;
-			opds[2] = Regs[$zero];
-			PutASMCode(MIPS_BEQ, opds);
-		}
-		else if (OP == $JLE) {
-			Symbol opds[3];
-			opds[0] = SRC2;
-			opds[1] = SRC1;
-			PutASMCode(MIPS_SLT, opds);
-
-			opds[0] = DST;
-			opds[1] = SRC2;
-			opds[2] = Regs[$zero];
-			PutASMCode(MIPS_BEQ, opds);
-		}
-	}
-	else if (SRC1->kind == SK_Constant) {
-		Symbol reg1, reg2;
-		Symbol opds[2];
-
-		if (SRC2->reg == NULL) {
-			reg2 = GetRegInternal();
-			Load(reg2, SRC2);
-			SRC2->reg = reg2;
-			reg2->link = SRC2;
-		}
-
-
-		// load im
-		reg1 = GetRegInternal();
-		opds[0] = reg1;
-		if (OP != $JL && OP != $JGE) {
-			opds[1] = SRC1;
-		}
-		else
-			opds[1] = AddConstant(SRC1->val + 1);
-
-		PutASMCode(MIPS_LI, opds);
-		SRC1 = reg1;
-
-		Symbol tempS;
-		tempS = SRC1;
-		SRC1 = SRC2;
-		SRC2 = tempS;
-		if (OP == $JE) {
-			PutASMCode(MIPS_BEQ, inst->opds);
-		}
-		else if (OP == $JNE) {
-			PutASMCode(MIPS_BNE, inst->opds);
-		}
-		else if (OP == $JG || OP == $JGE) {
-			opds[0] = SRC1;
-			opds[1] = SRC2;
-			PutASMCode(MIPS_SLT, opds);
-
-			SRC2 = Regs[$zero];
-			PutASMCode(MIPS_BNE, inst->opds);
-		}
-		else if (OP == $JL || OP == $JLE) {
-			opds[0] = SRC1;
-			opds[1] = SRC2;
-			PutASMCode(MIPS_SLT, opds);
-
-			SRC2 = Regs[$zero];
-			PutASMCode(MIPS_BEQ, inst->opds);
-		}
-	} 
-	else if (SRC2->kind == SK_Constant) {
-		Symbol reg1, reg2;
-		Symbol opds[2];
-
-		if (SRC1->reg == NULL) {
-			reg1= GetRegInternal();
-			Load(reg1, SRC1);
-			SRC1->reg = reg1;
-			reg1->link = SRC1;
-		}
-		
-
-		// load im
-		reg2 = GetRegInternal();
-		opds[0] = reg2;
-		if (OP != $JG && OP != $JLE) {
-			opds[1] = SRC2;
-		}
-		else
-			opds[1] = AddConstant(SRC2->val + 1);
-
-		PutASMCode(MIPS_LI, opds);
-		SRC2 = reg2;
-		if (OP == $JE) {
-			PutASMCode(MIPS_BEQ, inst->opds);
-		}
-		else if (OP == $JNE) {
-			PutASMCode(MIPS_BNE, inst->opds);
-		}
-		else if (OP == $JG || OP == $JGE) {
-			opds[0] = SRC1;
-			opds[1] = SRC2;
-			PutASMCode(MIPS_SLT, opds);
-
-			SRC2 = Regs[$zero];
-			PutASMCode(MIPS_BEQ, inst->opds);
-		}
-		else if (OP == $JL || OP == $JLE) {
-			opds[0] = SRC1;
-			opds[1] = SRC2;
-			PutASMCode(MIPS_SLT, opds);
-
-			SRC2 = Regs[$zero];
-			PutASMCode(MIPS_BNE, inst->opds);
-		}
-	}
-	else {
-		Symbol reg1, reg2;
-		if (SRC1->reg == NULL) {
-			reg1 = GetRegInternal();
-			Load(reg1, SRC1);
-			SRC1->reg = reg1;
-			reg1->link = SRC1;
-		}
-
-		if (SRC2->reg == NULL) {
-			reg2 = GetRegInternal();
-			Load(reg2, SRC2);
-			SRC2->reg = reg2;
-			reg2->link = SRC2;
-		}
-
-		if (OP == $JE) {
-			PutASMCode(MIPS_BEQ, inst->opds);
-		}
-		else if (OP == $JNE) {
-			PutASMCode(MIPS_BNE, inst->opds);
-		}
-		else if (OP == $JG) {
-			Symbol opds[3];
-			opds[0] = SRC2;
-			opds[1] = SRC1;
-			PutASMCode(MIPS_SLT, opds);
-
-			opds[0] = DST;
-			opds[1] = SRC2;
-			opds[2] = Regs[$zero];
-			PutASMCode(MIPS_BNE, opds);
-		}
-		else if (OP == $JL) {
-			Symbol opds[3];
-			opds[0] = SRC1;
-			opds[1] = SRC2;
-			PutASMCode(MIPS_SLT, opds);
-
-			opds[0] = DST;
-			opds[1] = SRC1;
-			opds[2] = Regs[$zero];
-			PutASMCode(MIPS_BNE, opds);
-		}
-		else if (OP == $JGE) {
-			Symbol opds[3];
-			opds[0] = SRC1;
-			opds[1] = SRC2;
-			PutASMCode(MIPS_SLT, opds);
-
-			opds[0] = DST;
-			opds[1] = SRC1;
-			opds[2] = Regs[$zero];
-			PutASMCode(MIPS_BEQ, opds);
-		}
-		else if (OP == $JLE) {
-			Symbol opds[3];
-			opds[0] = SRC2;
-			opds[1] = SRC1;
-			PutASMCode(MIPS_SLT, opds);
-
-			opds[0] = DST;
-			opds[1] = SRC2;
-			opds[2] = Regs[$zero];
-			PutASMCode(MIPS_BEQ, opds);
-		}
-
-
 	}
 
 	ClearRegs();
+
+	if (OP == $JE) PutASMCode(X86_JEI4, inst->opds);
+	if (OP == $JGE) PutASMCode(X86_JGEI4, inst->opds);
+	if (OP == $JG) PutASMCode(X86_JGI4, inst->opds);
+	if (OP == $JL) PutASMCode(X86_JLI4, inst->opds);
+	if (OP == $JGE) PutASMCode(X86_JGEI4, inst->opds);
+	if (OP == $JLE) PutASMCode(X86_JLEI4, inst->opds);
+
 }
 
 void Compiler::EmitJump(IRInst inst)
 {
 	DST = ((BBlock)DST)->sym;
-	PutASMCode(MIPS_B, inst->opds);
+	PutASMCode(X86_JMP, inst->opds);
 }
 
 void Compiler::EmitCall(IRInst inst)
@@ -845,22 +466,36 @@ void Compiler::EmitCall(IRInst inst)
 	for (i = argslist->npara - 1; i >= 0; i--)
 	{
 		arg = argslist->args[i];
-		PushArgument(arg, i);
+		PushArgument(arg);
 		stksize += sizeof(int) * 1;
 	}
 	// call func
-	PutASMCode(MIPS_JAL, inst->opds);
+	PutASMCode(X86_CALL, inst->opds);
+
+	// 如果參數不為0, 則返回時需要復原棧頂
+	if (stksize != 0) {
+		Symbol p;
+		p = IntConstant(stksize);
+		PutASMCode(X86_REDUCEF, &p);
+	}
 
 	if (DST) DST->ref--;
+	// 這裡DST 不會 DST == NULL，因為根據要求為ID = call ID.
 
-	DST->reg = Regs[$v0];
+	//函數返回值放在EAX
+	//AllocateReg(inst, 0);
+	//if (DST->reg != Regs[EAX])
+	//{
+	//	Move(DST, Regs[EAX]);
+	//}
+	DST->reg = Regs[EAX];
 }
 
 void Compiler::EmitReturn(IRInst inst)
 {
-	if (DST->reg != Regs[$v0])
+	if (DST->reg != Regs[EAX])
 	{
-		Load(Regs[$v0], DST);
+		Move(Regs[EAX], DST);
 	}
 }
 
@@ -926,15 +561,14 @@ void Compiler::EmitFunction(FunctionSymbol p)
 	Export((Symbol)p);
 	DefineLabel((Symbol)p);
 
-	varsize = p->locals.size() + p->arguments + 2;
-
-	LayoutFrame(p, varsize);
+	LayoutFrame(p, 2);
 	/*
 		pushl %ebp
 		movl %esp, %ebp
 	*/
+	varsize = p->locals.size();
 	EmitPrologue(varsize);
-	EmitArguments(p);
+	
 	bb = p->entryBB;
 	while (true) 
 	{
@@ -958,9 +592,7 @@ void Compiler::EmitFunction(FunctionSymbol p)
 void Compiler::DefineGlobal(Symbol p)
 {
 	char tmp[1024];
-	sprintf(tmp, "\t.globl\t_%s\n", p->name.c_str());
-	PutString(tmp);
-	sprintf(tmp, "\t_%s: .word 0 \n", p->name.c_str());
+	sprintf(tmp, "\t.lcomm\t%s\t%d\n", p->name.c_str(), sizeof(int));
 	PutString(tmp);
 }
 
@@ -983,7 +615,7 @@ void Compiler::DefineLabel(Symbol p)
 */
 
 void Compiler::TranslationUnit()
-{	
+{
 	// 始初化寄存器
 	SetupRegisters();
 
@@ -1009,7 +641,7 @@ void Compiler::BeginProgram(void)
 	// Initialize register symbols to
 	// make sure that no register contains data from variables.
 	int i = 0;
-	for (i = $zero; i <= $ra; i++)
+	for (i = EAX; i <= EDI; i++)
 	{
 		if (Regs[i] != NULL) {
 			Regs[i]->link = NULL;
@@ -1017,14 +649,12 @@ void Compiler::BeginProgram(void)
 	}
 
 	PutString("# Code auto-generated by leikinman\n");
-	char tmp[100];
-	sprintf(tmp, ".file	%s\n", SourceFileName);
-	PutString(tmp);
 }
 
 void Compiler::Data_Segment()
 {
-	PutString(".data\n");
+	PutString(".section .data\n");
+	PutString(".section .bss\n");
 }
 
 void Compiler::EmitGlobals(void)
@@ -1040,20 +670,14 @@ void Compiler::EmitGlobals(void)
 
 void Compiler::Text_Segment()
 {
-	PutString(".text\n");
+	PutString(".section .text\n");
 }
 
 void Compiler::EmitFunctions(void)
 {
-	vector<Symbol>::iterator p;
+	vector<Symbol>::iterator p = GlobalIDs.buckets.begin();
 
-	for (p = GlobalIDs.buckets.begin(); p != GlobalIDs.buckets.end(); p++) {
-		if ((*p)->kind == SK_Function && (*p)->name == "main") {
-			PutString("\tj	_main\n");
-		}
-	}
-
-	for (p = GlobalIDs.buckets.begin(); p != GlobalIDs.buckets.end(); p++) {
+	for (; p != GlobalIDs.buckets.end(); p++) {
 		if ((*p)->kind == SK_Function) {
 			EmitFunction((FunctionSymbol)*p);
 		}
@@ -1071,7 +695,7 @@ void Compiler::EndProgram(void)
 */
 void Compiler::analyze(string filename)
 {
-	sprintf(SourceFileName, "%s", filename.c_str());
+	strcpy(SourceFileName, filename.c_str());
 
 	ifstream in(filename, ios::in);
 	if (!in)

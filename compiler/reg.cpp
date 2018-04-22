@@ -1,5 +1,8 @@
 #include "reg.h"
 
+Symbol Regs[EDI + 1];
+int UsedRegs = 0;	//標誌位，由低位開始代表EAX...00000001
+
 Symbol Reg::CreateReg(string name, int no)
 {
 	Symbol reg;
@@ -71,7 +74,7 @@ int Reg::SelectSpillReg()
 int Reg::FindEmptyReg()
 {
 	int i;
-	for (i = $v0; i <= $ra; i++)
+	for (i = EAX; i <= EDI; i++)
 	{
 		if (Regs[i] != NULL && Regs[i]->link == NULL && !(1 << i & UsedRegs))
 			return i;

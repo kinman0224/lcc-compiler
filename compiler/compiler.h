@@ -45,14 +45,11 @@ private:
 	void DefineLabel(Symbol p);
 	void EmitPrologue(int varsize);
 	void EmitEpilogue(int varsize);
-	void EmitArguments(FunctionSymbol p);
 	void LayoutFrame(FunctionSymbol fsym, int fstParamPos);
 	void EmitBBlock(BBlock bb);
 	void EmitIRInst(IRInst inst);
 	void Move(Symbol dst, Symbol src);
-	void Save(Symbol dst, Symbol src);
-	void Load(Symbol dst, Symbol src);
-	void PushArgument(Symbol arg, int n);
+	void PushArgument(Symbol arg);
 
 	// Emit Inst
 	void EmitMove(IRInst inst);

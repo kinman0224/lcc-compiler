@@ -7,7 +7,6 @@ protected:
 	char* filename;
 
 public:
-	Error();
 	void Do_Error(char *err, int line = 0);
 	void Do_Fatal(char *err, int line = 0);
 };
