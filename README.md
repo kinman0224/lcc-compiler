@@ -1,5 +1,5 @@
-# lcc-mips
-A Simple C compiler with 80x86 version which programming in VS2015. 
+# lcc: A simple "C" compiler
+A Simple C compiler with ```80x86``` version which programming in VS2015. 
 
 ## demo
 This compiler can support the simple "C" language which like:
