@@ -234,14 +234,21 @@ void AS::_fparaList(TreeNode *parent)
 
 void AS::_fparameter(TreeNode *parent)
 {
+	/*
+	@ �΅�����
+	@ Ŀ��: ��ǰ�����ą���������΅�
+	*/
 	TreeNode_it node_it = parent->children.begin();
 
+	// ���һ����int, ����ֱ��advance
 	advance(parent, node_it);
 
+	// ����̖����Ոһ����׃��������׃���ĵ�ַ
 	string ID = node_it->token;
 	int line = node_it->line;
 	Symbol var = AddVariable(ID, line);
 
+	// �ڮ�ǰ�����ą������м��녢��
 	FSYM->params.push_back(var);
 }
 
