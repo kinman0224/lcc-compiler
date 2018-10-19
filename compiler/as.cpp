@@ -235,7 +235,7 @@ void AS::_fparaList(TreeNode *parent)
 void AS::_fparameter(TreeNode *parent)
 {
 	/*
-	@ �΅�����
+	@ �΅����� 
 	@ Ŀ��: ��ǰ�����ą���������΅�
 	*/
 	TreeNode_it node_it = parent->children.begin();
