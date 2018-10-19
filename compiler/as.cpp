@@ -105,9 +105,9 @@ void AS::_declaration(TreeNode* parent)
 
 			if (node_it->nt_symbol == $DeclType) {
 				if (node_it->children.begin()->nt_symbol == $DeclVar) {
-					// È«¾Ö×ƒÁ¿
+					// È«ï¿½ï¿½×ƒï¿½ï¿½
 
-					// ™z²éÖØ¸², °üÀ¨º¯”µÃûºÍ×ƒÁ¿Ãû
+					// ï¿½zï¿½ï¿½ï¿½Ø¸ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ƒï¿½ï¿½ï¿½ï¿½
 					Symbol var;
 					var = LookupID(ID, 0);
 					if (var != NULL) {
@@ -115,13 +115,13 @@ void AS::_declaration(TreeNode* parent)
 					}
 					else {
 						var = AddVariable(ID, line);
-						// ß@Ñe²»ÓÃ¼ÓÈëÕZ·¨˜ä
+						// ï¿½@ï¿½eï¿½ï¿½ï¿½Ã¼ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ï¿½
 					}
 				}
 				else if (node_it->children.begin()->nt_symbol == $DeclFunc) {
-					// c ›]ÓÐÖØÝdº¯”µ
+					// c ï¿½]ï¿½ï¿½ï¿½ï¿½ï¿½dï¿½ï¿½ï¿½ï¿½
 
-					// ™z²éÖØ¸², °üÀ¨º¯”µÃûºÍ×ƒÁ¿Ãû
+					// ï¿½zï¿½ï¿½ï¿½Ø¸ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ƒï¿½ï¿½ï¿½ï¿½
 					Symbol var;
 					var = LookupID(ID, 0);
 					if (var != NULL) {
@@ -234,21 +234,14 @@ void AS::_fparaList(TreeNode *parent)
 
 void AS::_fparameter(TreeNode *parent)
 {
-	/*
-	@ ÐÎ…¢²¿·Ö
-	@ Ä¿µÄ: Ïò®”Ç°º¯”µµÄ…¢”µ±í¼ÓÈëÐÎ…¢
-	*/
 	TreeNode_it node_it = parent->children.begin();
 
-	// ÒòžéÒ»¶¨žéint, ËùÒÔÖ±½Óadvance
 	advance(parent, node_it);
 
-	// Íù·ûÌ–±íÉêÕˆÒ»‚€ÐÂ×ƒÁ¿£¬·µ»Ø×ƒÁ¿µÄµØÖ·
 	string ID = node_it->token;
 	int line = node_it->line;
 	Symbol var = AddVariable(ID, line);
 
-	// ÔÚ®”Ç°º¯”µµÄ…¢”µÁÐÖÐ¼ÓÈë…¢”µ
 	FSYM->params.push_back(var);
 }
 
@@ -263,7 +256,7 @@ void AS::_statBlock(TreeNode *parent)
 		EnterScope();
 
 		if (node_it->nt_symbol == $InnerDeclar) {
-			// ¾Ö²¿×ƒÁ¿Â•Ã÷
+			// ï¿½Ö²ï¿½×ƒï¿½ï¿½Â•ï¿½ï¿½
 			_innerDeclar(&(*node_it));
 			advance(parent, node_it);
 
@@ -306,8 +299,8 @@ void AS::_innerDeclar(TreeNode *parent)
 void AS::_innerDeclVar(TreeNode *parent)
 {
 	/*
-	@ ¾Ö²¿×ƒÁ¿²¿·Ö
-	@ Ä¿µÄ: Ïò®”Ç°º¯”µµÄ×ƒÁ¿±í¼ÓÈë¾Ö²¿×ƒÁ¿
+	@ ï¿½Ö²ï¿½×ƒï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	@ Ä¿ï¿½ï¿½: ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ƒï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö²ï¿½×ƒï¿½ï¿½
 	*/
 
 	TreeNode_it node_it = parent->children.begin();
@@ -315,7 +308,7 @@ void AS::_innerDeclVar(TreeNode *parent)
 	// TYPE: int
 	advance(parent, node_it);
 
-	// Íù·ûÌ–±íÉêÕˆÒ»‚€ÐÂ×ƒÁ¿£¬·µ»Ø×ƒÁ¿µÄµØÖ·
+	// ï¿½ï¿½ï¿½ï¿½Ì–ï¿½ï¿½ï¿½ï¿½ÕˆÒ»ï¿½ï¿½ï¿½ï¿½×ƒï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ƒï¿½ï¿½ï¿½Äµï¿½Ö·
 	string ID = node_it->token;
 	int line = node_it->line;
 
@@ -327,8 +320,8 @@ void AS::_innerDeclVar(TreeNode *parent)
 	else {
 		var = AddVariable(ID, line);
 		
-		// ²»Í¬ÔÚÕZ·¨˜äÖÐ²åÈë
-		// ÔÚ®”Ç°º¯”µµÄ×ƒÁ¿ÁÐÖÐ¼ÓÈë¾Ö²¿×ƒÁ¿
+		// ï¿½ï¿½Í¬ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ï¿½ï¿½Ð²ï¿½ï¿½ï¿½
+		// ï¿½Ú®ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ƒï¿½ï¿½ï¿½ï¿½ï¿½Ð¼ï¿½ï¿½ï¿½Ö²ï¿½×ƒï¿½ï¿½
 		FSYM->locals.push_back(var);
 	}
 }
@@ -371,15 +364,15 @@ void AS::_statAssign(TreeNode *parent)
 		int line = node_it->line;
 		dst = LookupID(id);
 
-		// Èô·ûÌ–±íÖÐ›]ÓÐ
+		// ï¿½ï¿½ï¿½Ì–ï¿½ï¿½ï¿½Ð›]ï¿½ï¿½
 		if (dst == NULL) {
 			Error_UnDef(id.c_str(), line);
 
-			//›]ÓÐ„t¼ÓÈë·ûÌ–±í
+			//ï¿½]ï¿½Ð„tï¿½ï¿½ï¿½ï¿½ï¿½Ì–ï¿½ï¿½
 			dst = AddVariable(id, line);
 		}
 
-		// ¼ÓÈëÕZ·¨˜ä
+		// ï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ï¿½
 		node_it->val = dst;
 
 		advance(parent, node_it);
@@ -564,7 +557,7 @@ void AS::_factor(TreeNode *parent)
 		string token = node_it->token;
 		sym = IntConstant(atoi(token.c_str()));
 
-		// ¼ÓÈëÕZ·¨˜ä
+		// ï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ï¿½
 		node_it->val = sym;
 
 	}
@@ -576,11 +569,11 @@ void AS::_factor(TreeNode *parent)
 		if (sym == NULL) {
 			Error_UnDef(token.c_str(), line);
 
-			//›]ÓÐ„t¼ÓÈë·ûÌ–±í
+			//ï¿½]ï¿½Ð„tï¿½ï¿½ï¿½ï¿½ï¿½Ì–ï¿½ï¿½
 			sym = AddVariable(token, line);
 		}
 
-		// ¼ÓÈëÕZ·¨˜ä
+		// ï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ï¿½
 		node_it->val = sym;
 		
 		advance(parent, node_it);
@@ -633,7 +626,7 @@ void AS::_aparameter(TreeNode *parent)
 	TreeNode_it node_it = parent->children.begin();
 
 	if (node_it != parent->children.end() && node_it->nt_symbol == $AparaList) {
-		// º¬ÓÐ…¢”µ±í
+		// ï¿½ï¿½ï¿½Ð…ï¿½ï¿½ï¿½ï¿½ï¿½
 		_aparaList(&(*node_it));
 	}
 
