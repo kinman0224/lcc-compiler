@@ -14,16 +14,16 @@ enum
 };
 
 #define SYMBOL_COMMON     \
-    int		kind;         \
-    string	name;         \
-	string	aname;		  \
-    int		level;        \
-    int		ref;          \
-	int		val;		  \
-	int		line;		  \
-    struct symbol *reg;   \
-	struct symbol *link;  \
-    struct symbol *next;
+		int			kind;					\
+		string	name;         \
+		string	aname;			  \
+		int			level;				\
+		int			ref;          \
+		int			val;				  \
+		int			line;				  \
+		struct symbol *reg;   \
+		struct symbol *link;  \
+		struct symbol *next;
 
 typedef struct symbol
 {
