@@ -13,17 +13,17 @@ enum
 	SK_Label, SK_Function, SK_Register
 };
 
-#define SYMBOL_COMMON     \
-		int			kind;					\
-		string	name;         \
-		string	aname;			  \
-		int			level;				\
-		int			ref;          \
-		int			val;				  \
-		int			line;				  \
-		struct symbol *reg;   \
-		struct symbol *link;  \
-		struct symbol *next;
+#define SYMBOL_COMMON		\
+	int			kind;					\
+	string	name;					\
+	string	aname;			  \
+	int			level;				\
+	int			ref;					\
+	int			val;				  \
+	int			line;					\
+	struct symbol *reg;		\
+	struct symbol *link;	\
+	struct symbol *next;
 
 typedef struct symbol
 {
